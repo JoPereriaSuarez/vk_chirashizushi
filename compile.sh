@@ -11,4 +11,4 @@ do
     gcc -g -c -I "$header_dir" "$file" -o "$bin_dir$filename".o
 done
 
-gcc -g "${args[@]}" main.c -o chirashizushi.out -lSDL2 -lvulkan 
+gcc -g -fsanitize=address "${args[@]}" main.c -o chirashizushi.out -lSDL2 -lvulkan 

@@ -6,5 +6,5 @@ typedef struct darray
 }darray;
 
 void darray_create(unsigned int capacity, darray *instance);
-int darray_add(void **items);
-int darray_destroy(darray *instance);
+int darray_add(void *item, darray *instance);
+void darray_destroy(darray *instance);

@@ -16,6 +16,7 @@ void cleanup()
 
 void main_loop()
 {
+    // TODO: decouple this
     while(quit == 0)
     {
         SDL_Event event_ptr;
