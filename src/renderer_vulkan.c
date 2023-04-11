@@ -10,16 +10,24 @@ static VkInstance instance = NULL;
 static const char **extensions;
 
 #define VALIDATION_LAYER_COUNT 1
-const char* validation_layers[] = 
-{
-    "VK_LAYER_KHRONOS_validation"
-};
+const char** validation_layers; 
 
 void print_layer_property(VkLayerProperties *prop)
 {
     printf("\nLAYER DETAIL:\nlayer name:\t%s\ndescription:\t%s\nimp version:\t%d\nspec version:\t%d\n",
             prop->layerName, prop->description, prop->implementationVersion, prop->specVersion);
 }
+
+void init_validation_layer()
+{
+    char *layer = "VK_LAYER_KHRONOS_validation";
+    size_t layer_size = strlen(layer);
+
+    validation_layers = malloc(sizeof(char **) * layer_size);
+    validation_layers[0] = layer;
+    printf("%s\n", validation_layers[0]);
+}
+
 
 int check_validation_layer_support()
 {
@@ -68,6 +76,7 @@ int check_validation_layer_support()
 
 int init_vulkan()
 {
+    init_validation_layer();
     if(check_validation_layer_support() != 0)
     {
         return 1;
@@ -97,14 +106,18 @@ int init_vulkan()
         return 1;
     }
 
+
     VkInstanceCreateInfo instance_info =
     {
         .sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO,
         .pApplicationInfo = &app_info,
         .enabledExtensionCount = extension_count,
-        .ppEnabledExtensionNames = extensions
+        .ppEnabledExtensionNames = extensions,
+        .enabledLayerCount = VALIDATION_LAYER_COUNT,
+        .ppEnabledLayerNames = validation_layers
     };
     VkResult instance_result = vkCreateInstance(&instance_info, NULL, &instance);
+
     if(instance_result != VK_SUCCESS)
     {
         printf("Error creating vulkan instance code: %d", instance_result);
@@ -118,4 +131,6 @@ void destroy_instance()
     instance = NULL;
     free(extensions);
     extensions = NULL;
+    free(validation_layers);
+    validation_layers = NULL;
 }
