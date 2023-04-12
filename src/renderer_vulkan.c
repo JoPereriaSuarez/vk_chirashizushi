@@ -5,12 +5,14 @@
 #include "../headers/renderer_vulkan.h"
 #include "../headers/window_manager.h"
 #include "../headers/darray.h"
+#include "../headers/vulkan_debugger.h"
 
 static VkInstance instance = NULL;
 static const char **extensions;
 
 #define VALIDATION_LAYER_COUNT 1
 const char** validation_layers; 
+
 
 void print_layer_property(VkLayerProperties *prop)
 {
@@ -25,7 +27,6 @@ void init_validation_layer()
 
     validation_layers = malloc(sizeof(char **) * layer_size);
     validation_layers[0] = layer;
-    printf("%s\n", validation_layers[0]);
 }
 
 
@@ -68,6 +69,8 @@ int check_validation_layer_support()
             printf("ERROR: Cannot find validation layer: %s\n", validation_layers[i]);
             return 1;
         }
+
+        printf("All validation layers are present.\n");
     }
 
 
@@ -94,18 +97,25 @@ int init_vulkan()
     };   
 
     unsigned int extension_count = 0;
-    extensions = malloc(sizeof(char *) * extension_count);
-    if(get_vk_extensions(&extension_count, NULL) != 0)
+    if(window_get_extensions(&extension_count, NULL) != 0)
     {
         printf("Error creating extensions count\n");
         return 1;
     }
-    if(get_vk_extensions(&extension_count, extensions) != 0)
+
+#ifdef VULKAN_DEBUG
+    extension_count ++;
+#endif
+    extensions = malloc(sizeof(char *) * extension_count);
+
+    if(window_get_extensions(&extension_count, extensions) != 0)
     {
         printf("Error creating extensions\n");
         return 1;
     }
-
+#ifdef VULKAN_DEBUG
+    extensions[extension_count -1] = VK_EXT_DEBUG_UTILS_EXTENSION_NAME;
+#endif
 
     VkInstanceCreateInfo instance_info =
     {
@@ -123,10 +133,19 @@ int init_vulkan()
         printf("Error creating vulkan instance code: %d", instance_result);
         return 1;
     }
+
+#ifdef VULKAN_DEBUG
+    vulkan_debugger_init(instance);
+#endif
+    return 0;
 }
 
 void destroy_instance()
 {
+#ifdef VULKAN_DEBUG
+    vulkan_debugger_destroy(instance);
+#endif
+
     vkDestroyInstance(instance, NULL);
     instance = NULL;
     free(extensions);

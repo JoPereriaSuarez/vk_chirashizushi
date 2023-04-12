@@ -24,7 +24,7 @@ int window_create(unsigned int width, unsigned int height)
     return 0;
 }
 
-int get_vk_extensions(unsigned int *count, const char **names)
+int window_get_extensions(unsigned int *count, const char **names)
 {
     return 1 - SDL_Vulkan_GetInstanceExtensions(window, count, names);
 }
