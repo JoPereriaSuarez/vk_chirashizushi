@@ -1,4 +1,4 @@
-#include "../headers/vulkan_debugger.h"
+#include "vulkan_debugger.h"
 #include <stdio.h>
 
 #define CREATE_INFO_SEVERITY VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT \

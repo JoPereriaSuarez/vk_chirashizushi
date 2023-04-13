@@ -1,4 +1,4 @@
-#include "../headers/darray.h"
+#include "darray.h"
 #include <stdlib.h>
 
 void darray_create(unsigned int capacity, darray *instance)

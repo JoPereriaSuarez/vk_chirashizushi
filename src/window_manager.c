@@ -1,4 +1,4 @@
-#include "../headers/window_manager.h"
+#include "window_manager.h"
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_vulkan.h>
 #include <stdio.h>

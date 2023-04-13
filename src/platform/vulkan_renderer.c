@@ -2,10 +2,10 @@
 #include <stdlib.h>
 #include <string.h>
 #include <vulkan/vulkan.h>
-#include "../headers/renderer_vulkan.h"
-#include "../headers/window_manager.h"
-#include "../headers/darray.h"
-#include "../headers/vulkan_debugger.h"
+#include "vulkan_renderer.h"
+#include "window_manager.h"
+#include "darray.h"
+#include "vulkan_debugger.h"
 
 static VkInstance instance = NULL;
 static const char **extensions;

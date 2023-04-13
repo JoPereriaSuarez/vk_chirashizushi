@@ -1,6 +1,6 @@
 #include <stdio.h>
-#include "headers/renderer_vulkan.h"
-#include "headers/window_manager.h"
+#include "src/platform/vulkan_renderer.h"
+#include "src/window_manager.h"
 #include <SDL2/SDL.h>
 
 #define WINDOW_WIDTH 800
