@@ -21,11 +21,9 @@ VKAPI_ATTR VkBool32 VKAPI_CALL debug_callback (VkDebugUtilsMessageSeverityFlagBi
     if(message_severity >= VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT)
     {
         printf("\nvalidation layer: %s\n", callback_data->pMessage);
-        // continue with vulkan layer 
-        return VK_FALSE;
     }
-    // abort vulkan layer with exception
-    return VK_TRUE;
+    // should always return false. True is reserve for vulkan layer 
+    return VK_FALSE;
 }
 
 void vulkan_debugger_init(VkInstance instance)
