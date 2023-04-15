@@ -2,7 +2,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <vulkan/vulkan.h>
-#include "vulkan_renderer.h"
+#include "vulkan_setup.h"
 #include "window_manager.h"
 #include "darray.h"
 #include "vulkan_debugger.h"
@@ -16,8 +16,66 @@ const char** validation_layers;
 
 void print_layer_property(VkLayerProperties *prop)
 {
-    printf("\nLAYER DETAIL:\nlayer name:\t%s\ndescription:\t%s\nimp version:\t%d\nspec version:\t%d\n",
+    printf("\nlayer name:\t%s\ndescription:\t%s\nimp version:\t%d\nspec version:\t%d\n",
             prop->layerName, prop->description, prop->implementationVersion, prop->specVersion);
+}
+void print_physical_device_properties(VkPhysicalDeviceProperties *device_properties)
+{
+    printf("api version:\t%d\ndriver version:\t%d\nvendor id:\t%d\ndevice id:\t%d\ndevice type:\t%d\ndevice name:\t%s\n",
+        device_properties->apiVersion, device_properties->driverVersion, device_properties->vendorID, device_properties->deviceID, device_properties->deviceType, device_properties->deviceName);
+}
+
+void init_physical_device()
+{
+    uint32_t devices_count;
+    VkResult devices_count_result = vkEnumeratePhysicalDevices(instance, &devices_count, NULL);
+    if(devices_count_result != VK_SUCCESS)
+    {
+        printf("[ERROR] Cannot get physical device count code: %d\n", devices_count_result);
+        return;
+    }
+    if(devices_count == 0)
+    {
+        printf("[WARNING] There's no physical devices\n");
+    }
+    VkPhysicalDevice *devices = malloc(sizeof(struct VkPhysicalDevice_T *) * devices_count);
+    devices_count_result = vkEnumeratePhysicalDevices(instance, &devices_count, devices);
+    if(devices_count_result != VK_SUCCESS)
+    {
+        printf("[ERROR] Cannot get physical devices code: %d\n", devices_count_result);
+        return;
+    }
+
+    VkPhysicalDeviceFeatures device_features;
+    VkPhysicalDeviceProperties device_properties;
+    VkPhysicalDevice selected_device = NULL;
+
+    char *env_var = getenv("DISABLE_LAYER_NV_OPTIMUS_1");
+    printf("env var:\t%s\n", env_var);
+
+    printf("\ndevices count result:\t%d\ndevices count:\t%d\n", devices_count_result, devices_count);
+    for(int i = 0; i < devices_count; i++)
+    {
+        vkGetPhysicalDeviceFeatures(devices[i], &device_features);
+        vkGetPhysicalDeviceProperties(devices[i], &device_properties);
+        printf("\nDEVICE PROPERTIES:\n");
+        print_physical_device_properties(&device_properties);
+        if(device_features.geometryShader == VK_TRUE && device_properties.deviceType == VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU)
+        {
+            printf("\nFound device %s\n", device_properties.deviceName);
+            printf("%zu\n", sizeof(devices[i]));
+            selected_device = devices[i];
+            break;
+        }
+    }
+    free(devices);
+
+    if(selected_device == NULL)
+    {
+        printf("[ERROR] Cannot find any suitable graphic device\n");
+        return;
+    }
+    //vkGetPhysicalDeviceQueueFamilyProperties(selected_device)
 }
 
 void init_validation_layer()
@@ -137,6 +195,8 @@ int init_vulkan()
 #ifdef VULKAN_DEBUG
     vulkan_debugger_init(instance);
 #endif
+
+    init_physical_device();
     return 0;
 }
 

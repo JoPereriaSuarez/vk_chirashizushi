@@ -2,7 +2,6 @@
 
 bin_dir="$PWD/bin/"
 src_dir="$PWD/src/"
-header_dir="$PWD/headers/"
 args=()
 for file in $(find "$src_dir" -type f -name '*c')
 do

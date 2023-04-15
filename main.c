@@ -1,5 +1,5 @@
 #include <stdio.h>
-#include "src/platform/vulkan_renderer.h"
+#include "src/platform/vulkan_setup.h"
 #include "src/window_manager.h"
 #include <SDL2/SDL.h>
 
