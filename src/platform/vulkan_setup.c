@@ -24,7 +24,16 @@ void print_physical_device_properties(VkPhysicalDeviceProperties *device_propert
     printf("api version:\t%d\ndriver version:\t%d\nvendor id:\t%d\ndevice id:\t%d\ndevice type:\t%d\ndevice name:\t%s\n",
         device_properties->apiVersion, device_properties->driverVersion, device_properties->vendorID, device_properties->deviceID, device_properties->deviceType, device_properties->deviceName);
 }
-
+void print_physical_family_queue(VkQueueFamilyProperties family_queue_prop)
+{
+    printf("\nflags\t%d\ncount:\t%d\nvalid bits:\t%d\nimage transfer widht:\t%d\nimage transfer height:\t%d\nimage transfer depth:\t%d\n",
+        family_queue_prop.queueFlags, 
+        family_queue_prop.queueCount, 
+        family_queue_prop.timestampValidBits,
+        family_queue_prop.minImageTransferGranularity.width,
+         family_queue_prop.minImageTransferGranularity.height,  
+         family_queue_prop.minImageTransferGranularity.depth);
+}
 void init_physical_device()
 {
     uint32_t devices_count;
@@ -63,19 +72,29 @@ void init_physical_device()
         if(device_features.geometryShader == VK_TRUE && device_properties.deviceType == VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU)
         {
             printf("\nFound device %s\n", device_properties.deviceName);
-            printf("%zu\n", sizeof(devices[i]));
             selected_device = devices[i];
             break;
         }
     }
     free(devices);
+    devices = NULL;
 
     if(selected_device == NULL)
     {
         printf("[ERROR] Cannot find any suitable graphic device\n");
         return;
     }
-    //vkGetPhysicalDeviceQueueFamilyProperties(selected_device)
+    uint32_t family_queue_count;
+    vkGetPhysicalDeviceQueueFamilyProperties(selected_device, &family_queue_count, NULL);
+    VkQueueFamilyProperties *family_queue = malloc(sizeof(VkQueueFamilyProperties) * family_queue_count + 1);
+    vkGetPhysicalDeviceQueueFamilyProperties(selected_device, &family_queue_count, family_queue);
+    printf("FAMILY QUEUES\n");
+    for(int i = 0; i < family_queue_count; i ++)
+    {
+        print_physical_family_queue(family_queue[i]);
+    }
+    free(family_queue);
+    family_queue = NULL;
 }
 
 void init_validation_layer()
