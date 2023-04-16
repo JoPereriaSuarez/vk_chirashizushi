@@ -13,6 +13,9 @@ static const char **extensions;
 #define VALIDATION_LAYER_COUNT 1
 const char** validation_layers; 
 
+static VkDevice device;
+static VkQueue graphics_queue;
+
 
 void print_layer_property(VkLayerProperties *prop)
 {
@@ -89,10 +92,50 @@ void init_physical_device()
     VkQueueFamilyProperties *family_queue = malloc(sizeof(VkQueueFamilyProperties) * family_queue_count + 1);
     vkGetPhysicalDeviceQueueFamilyProperties(selected_device, &family_queue_count, family_queue);
     printf("FAMILY QUEUES\n");
+    int selected_queue_index = -1;
     for(int i = 0; i < family_queue_count; i ++)
     {
         print_physical_family_queue(family_queue[i]);
     }
+    for(int i = 0; i < family_queue_count; i ++)
+    {
+        if(family_queue[i].queueFlags & VK_QUEUE_GRAPHICS_BIT)
+        {
+            selected_queue_index = i;
+            break;
+        }
+    }
+
+    float queue_priority;
+    VkDeviceQueueCreateInfo queue_create_info = 
+    {
+        .sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO,
+        .pNext = NULL,
+        .queueFamilyIndex = selected_queue_index,
+        .queueCount = 1,
+        .pQueuePriorities = &queue_priority
+    };
+
+    VkDeviceCreateInfo logical_device_create_info = 
+    {
+        .sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO,
+        .pNext = NULL,
+        .queueCreateInfoCount = 1,
+        .pQueueCreateInfos = &queue_create_info,
+#ifdef VULKAN_DEBUG
+        .enabledLayerCount = VALIDATION_LAYER_COUNT,
+        .ppEnabledLayerNames = validation_layers,
+        .pEnabledFeatures = &device_features
+#endif
+    };
+
+    if(vkCreateDevice(selected_device, &logical_device_create_info, NULL, &device) != VK_SUCCESS)
+    {
+        printf("[ERROR] Cannot create a VK_DEVICE\n");
+    }
+
+    vkGetDeviceQueue(device, selected_queue_index, 0, &graphics_queue);
+
     free(family_queue);
     family_queue = NULL;
 }
@@ -225,6 +268,8 @@ void destroy_instance()
     vulkan_debugger_destroy(instance);
 #endif
 
+    vkDestroyDevice(device, NULL);
+    device = NULL;
     vkDestroyInstance(instance, NULL);
     instance = NULL;
     free(extensions);
