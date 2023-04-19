@@ -1,14 +1,13 @@
+#include "vulkan_setup.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <vulkan/vulkan.h>
-#include "vulkan_setup.h"
 #include "window_manager.h"
 #include "darray.h"
 #include "vulkan_debugger.h"
 
 static VkInstance instance = NULL;
-static const char **extensions;
 
 #define VALIDATION_LAYER_COUNT 1
 const char** validation_layers; 
@@ -16,6 +15,7 @@ const char** validation_layers;
 static VkDevice device;
 static VkQueue graphics_queue;
 
+static VkSurfaceKHR surface;
 
 void print_layer_property(VkLayerProperties *prop)
 {
@@ -37,6 +37,41 @@ void print_physical_family_queue(VkQueueFamilyProperties family_queue_prop)
          family_queue_prop.minImageTransferGranularity.height,  
          family_queue_prop.minImageTransferGranularity.depth);
 }
+
+void init_surface_creation()
+{
+    window_manager_info wm_info = get_wm_info();
+    VkResult create_surface_result = VK_INCOMPLETE;
+
+#ifdef VK_USE_PLATFORM_XLIB_KHR
+        VkXlibSurfaceCreateInfoKHR create_surface_info = 
+        {
+            .sType = VK_STRUCTURE_TYPE_XLIB_SURFACE_CREATE_INFO_KHR,
+            .pNext = NULL,
+            .flags = 0,
+            .dpy = wm_info.xlib_display,
+            .window = wm_info.xlib_window
+        };
+        create_surface_result = vkCreateXlibSurfaceKHR(instance, &create_surface_info, NULL, &surface);
+        printf("[INFO] Add X11 SURFACE\n");
+#endif
+
+
+#ifdef VK_USE_PLATFORM_WAYLAND_KHR
+        VkWaylandSurfaceCreateInfoKHR create_surface_info = 
+        {
+            .sType = VK_STRUCTURE_TYPE_WAYLAND_SURFACE_CREATE_INFO_KHR,
+            .pNext = NULL,
+            .flags = 0,
+            .display = wm_info.wl_display,
+            .surface = wm_info.wl_surface
+        };
+        create_surface_result = vkCreateWaylandSurfaceKHR(instance, &create_surface_info, NULL, &surface);
+        printf("[INFO] Add WAYLAND SURFACE\n");
+#endif
+    printf("[INFO] Create surface result %d\n\n", create_surface_result);
+}
+
 void init_physical_device()
 {
     uint32_t devices_count;
@@ -63,7 +98,6 @@ void init_physical_device()
     VkPhysicalDevice selected_device = NULL;
 
     char *env_var = getenv("DISABLE_LAYER_NV_OPTIMUS_1");
-    printf("env var:\t%s\n", env_var);
 
     printf("\ndevices count result:\t%d\ndevices count:\t%d\n", devices_count_result, devices_count);
     for(int i = 0; i < devices_count; i++)
@@ -193,7 +227,6 @@ int check_validation_layer_support()
         printf("All validation layers are present.\n");
     }
 
-
     return 0;
 }
 
@@ -213,7 +246,7 @@ int init_vulkan()
         .applicationVersion = VK_MAKE_API_VERSION(1, 0, 0, 1),
         .pEngineName = "No Engine",
         .engineVersion = VK_MAKE_API_VERSION(1, 1, 0, 0),
-        .apiVersion = VK_API_VERSION_1_3
+        .apiVersion = VK_API_VERSION_1_0
     };   
 
     unsigned int extension_count = 0;
@@ -226,7 +259,9 @@ int init_vulkan()
 #ifdef VULKAN_DEBUG
     extension_count ++;
 #endif
-    extensions = malloc(sizeof(char *) * extension_count);
+    printf("[INFO] Extensions count: %d\n", extension_count);
+
+    const char **extensions = malloc(sizeof(char *) * extension_count);
 
     if(window_get_extensions(&extension_count, extensions) != 0)
     {
@@ -234,8 +269,16 @@ int init_vulkan()
         return 1;
     }
 #ifdef VULKAN_DEBUG
+    extension_count ++;
     extensions[extension_count -1] = VK_EXT_DEBUG_UTILS_EXTENSION_NAME;
 #endif
+
+    printf("[INFO] EXTENSIONS LIST\n");
+    for(int i = 0; i < extension_count; i++)
+    {
+        printf("Extension: \t%s\n", extensions[i]);
+    }
+    printf("[INFO] FINISH EXTENSIONS LIST\n");
 
     VkInstanceCreateInfo instance_info =
     {
@@ -254,11 +297,14 @@ int init_vulkan()
         return 1;
     }
 
+
 #ifdef VULKAN_DEBUG
     vulkan_debugger_init(instance);
 #endif
-
+    init_surface_creation();
     init_physical_device();
+    free(extensions);
+    extensions = NULL;
     return 0;
 }
 
@@ -267,13 +313,11 @@ void destroy_instance()
 #ifdef VULKAN_DEBUG
     vulkan_debugger_destroy(instance);
 #endif
-
+    vkDestroySurfaceKHR(instance, surface, NULL);
     vkDestroyDevice(device, NULL);
     device = NULL;
     vkDestroyInstance(instance, NULL);
     instance = NULL;
-    free(extensions);
-    extensions = NULL;
     free(validation_layers);
     validation_layers = NULL;
 }
