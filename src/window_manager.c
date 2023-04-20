@@ -25,7 +25,7 @@ int window_create(unsigned int width, unsigned int height)
     SDL_SetWindowResizable(window, SDL_TRUE);
 
     SDL_VERSION(&wm_info.version);
-    printf("WM VERSION %d.%d.%d\n", wm_info.version.major, wm_info.version.minor, wm_info.version.patch);
+    printf("[INFO] WM VERSION %d.%d.%d\n", wm_info.version.major, wm_info.version.minor, wm_info.version.patch);
 
     if(SDL_GetWindowWMInfo(window, &wm_info) == SDL_FALSE)
     {
@@ -54,34 +54,10 @@ int create_window_surface(VkInstance instance, VkSurfaceKHR *surface)
 
 window_manager_info get_wm_info()
 {
-    window_manager_info wmi;
-// #ifdef SDL_VIDEO_DRIVER_WINDOWS
-//     window_manager_info wmi = 
-//     {
-//         .window = wm_info.info.win.window,
-//         .hdc = wm_info.info.win.hdc,
-//         .h_instance = wm_info.info.win.hinstance,
-//     };
-
-// #elif SDL_VIDEO_DRIVER_WAYLAND && USING_WAYLAND
-//     window_manager_info wmi = 
-//     {
-//         .display = wm_info.info.wl.display,
-//         .shell_surface = wm_info.info.wl.shell_surface,
-//         .surface = wm_info.info.wl.surface,
-//         .wl_egl_window = wm_info.info.wl.egl_window,
-//         .xdg_surface = wm_info.info.wl.xdg_surface,
-//         .xdg_top_level = wm_info.info.wl.xdg_toplevel,
-//     };
-
-// #elif SDL_VIDEO_DRIVER_X11 && USING_X11
-//     window_manager_info wmi = 
-//     {
-//         .display = wm_info.info.x11.display,
-//         .window = wm_info.info.x11.window
-//     };
-
-// #endif
-
+    window_manager_info wmi = 
+    {
+        .xlib_display = wm_info.info.x11.display,
+        .xlib_window = wm_info.info.x11.window
+    };
     return wmi;
 }

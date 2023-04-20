@@ -33,10 +33,11 @@ void print_physical_family_queue(VkQueueFamilyProperties family_queue_prop)
         family_queue_prop.queueFlags, 
         family_queue_prop.queueCount, 
         family_queue_prop.timestampValidBits,
-        family_queue_prop.minImageTransferGranularity.width,
-         family_queue_prop.minImageTransferGranularity.height,  
-         family_queue_prop.minImageTransferGranularity.depth);
+        family_queue_prop.minImageTransferGranularity.width, 
+        family_queue_prop.minImageTransferGranularity.height,   
+        family_queue_prop.minImageTransferGranularity.depth);
 }
+
 
 void init_surface_creation()
 {
@@ -126,21 +127,46 @@ void init_physical_device()
     VkQueueFamilyProperties *family_queue = malloc(sizeof(VkQueueFamilyProperties) * family_queue_count + 1);
     vkGetPhysicalDeviceQueueFamilyProperties(selected_device, &family_queue_count, family_queue);
     printf("FAMILY QUEUES\n");
-    int selected_queue_index = -1;
+
+    int found_selected_index = 0;
+    int found_present_index = 0;
+
+    uint32_t selected_queue_index;
+    uint32_t present_queue_index;
     for(int i = 0; i < family_queue_count; i ++)
     {
         print_physical_family_queue(family_queue[i]);
     }
     for(int i = 0; i < family_queue_count; i ++)
     {
-        if(family_queue[i].queueFlags & VK_QUEUE_GRAPHICS_BIT)
+        if(found_selected_index == 0 && family_queue[i].queueFlags & VK_QUEUE_GRAPHICS_BIT)
         {
             selected_queue_index = i;
+            found_selected_index = 1;
+        }
+        if(found_present_index == 0)
+        {
+            VkBool32 is_surface_supported = VK_FALSE;
+            VkResult is_surface_supported_result = vkGetPhysicalDeviceSurfaceSupportKHR(selected_device, i, surface, &is_surface_supported);
+            if(is_surface_supported_result != VK_SUCCESS)
+            {
+                printf("[ERROR] Window Surface is not supported by physical graphic device result: %d, value %d\n", is_surface_supported_result, is_surface_supported);
+                return;
+            }
+            if(is_surface_supported == VK_TRUE)
+            {
+                present_queue_index = i;
+                found_present_index = 1;
+            }
+        }
+
+        if(found_present_index == 1 && found_selected_index == 1)
+        {
             break;
         }
     }
 
-    float queue_priority;
+    float queue_priority = 1.0;
     VkDeviceQueueCreateInfo queue_create_info = 
     {
         .sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO,
@@ -166,10 +192,11 @@ void init_physical_device()
     if(vkCreateDevice(selected_device, &logical_device_create_info, NULL, &device) != VK_SUCCESS)
     {
         printf("[ERROR] Cannot create a VK_DEVICE\n");
+        return;
     }
 
     vkGetDeviceQueue(device, selected_queue_index, 0, &graphics_queue);
-
+    printf("[INFO] FINISH CREATING DEVICE GRAPHIC QUEUE\n\n");
     free(family_queue);
     family_queue = NULL;
 }
@@ -224,7 +251,7 @@ int check_validation_layer_support()
             return 1;
         }
 
-        printf("All validation layers are present.\n");
+        printf("[INFO] All validation layers are present.\n\n");
     }
 
     return 0;
@@ -236,18 +263,7 @@ int init_vulkan()
     if(check_validation_layer_support() != 0)
     {
         return 1;
-    }
-
-    VkApplicationInfo app_info = 
-    {
-        .sType = VK_STRUCTURE_TYPE_APPLICATION_INFO,
-        .pNext = NULL,
-        .pApplicationName = "Shirachizushi",
-        .applicationVersion = VK_MAKE_API_VERSION(1, 0, 0, 1),
-        .pEngineName = "No Engine",
-        .engineVersion = VK_MAKE_API_VERSION(1, 1, 0, 0),
-        .apiVersion = VK_API_VERSION_1_0
-    };   
+    } 
 
     unsigned int extension_count = 0;
     if(window_get_extensions(&extension_count, NULL) != 0)
@@ -280,6 +296,16 @@ int init_vulkan()
     }
     printf("[INFO] FINISH EXTENSIONS LIST\n");
 
+    VkApplicationInfo app_info = 
+    {
+        .sType = VK_STRUCTURE_TYPE_APPLICATION_INFO,
+        .pNext = NULL,
+        .pApplicationName = "Shirachizushi",
+        .applicationVersion = VK_MAKE_API_VERSION(1, 0, 0, 1),
+        .pEngineName = "No Engine",
+        .engineVersion = VK_MAKE_API_VERSION(1, 1, 0, 0),
+        .apiVersion = VK_API_VERSION_1_3
+    };  
     VkInstanceCreateInfo instance_info =
     {
         .sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO,
@@ -305,6 +331,8 @@ int init_vulkan()
     init_physical_device();
     free(extensions);
     extensions = NULL;
+
+    printf("[INFO] FINISH CREATING VULKAN INSTANCE AND DEVICES\n\n");
     return 0;
 }
 
