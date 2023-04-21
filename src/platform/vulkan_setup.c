@@ -73,6 +73,59 @@ void init_surface_creation()
     printf("[INFO] Create surface result %d\n\n", create_surface_result);
 }
 
+int check_physical_device_extension(VkPhysicalDevice physical_device, char **required_extensions, uint32_t required_extensions_count)
+{
+    uint32_t extensions_count;
+
+    VkResult result = vkEnumerateDeviceExtensionProperties(physical_device, NULL, &extensions_count, NULL);
+    if(result != VK_SUCCESS)
+    {
+        printf("[ERROR] Error enumerating Physical Device extensions code: %d\n", result);
+        return 0;
+    }
+    printf("[INFO] Physical Device extensions Count: %d\n", extensions_count);
+    VkExtensionProperties *properties = malloc(sizeof(VkExtensionProperties) * extensions_count);
+    result = vkEnumerateDeviceExtensionProperties(physical_device, NULL, &extensions_count, properties);
+    if(result != VK_SUCCESS)
+    {
+        printf("[ERROR] Error getting Physical Device extensions code: %d\n", result);
+        return 0;
+    }
+
+    // UNCOMMENT TO PRINT PROPERTIES
+    // for(int i = 0; i < extensions_count; i++)
+    // {
+    //     printf("[INFO] Phyiscal Device extension at: %d, Name: %s, Version: %d\n", i, properties[i].extensionName, properties[i].specVersion);
+    // }
+
+    uint32_t extensions_found_count = 0;
+    for(int i = 0; i < extensions_count; i++)
+    {
+        for(int j = 0; j < required_extensions_count; j++)
+        {
+            if(strcmp(properties[i].extensionName, required_extensions[j]) == 0)
+            {
+                printf("[INFO] Found Extensions at index %d, %s\n", i, properties[i].extensionName);
+                extensions_found_count++;
+                break;
+            }
+        }
+
+        if(extensions_found_count >= required_extensions_count)
+        {
+            printf("[INFO] Found all Physical device Extensions\n");
+            break;
+        }
+    }
+    if(extensions_found_count == 0 && required_extensions_count > extensions_found_count)
+    {
+        printf("[ERROR] Cannot get al the physical device extensions\n");
+        return 0;
+    }
+
+    return 1;
+}
+
 void init_physical_device()
 {
     uint32_t devices_count;
@@ -97,8 +150,6 @@ void init_physical_device()
     VkPhysicalDeviceFeatures device_features;
     VkPhysicalDeviceProperties device_properties;
     VkPhysicalDevice selected_device = NULL;
-
-    char *env_var = getenv("DISABLE_LAYER_NV_OPTIMUS_1");
 
     printf("\ndevices count result:\t%d\ndevices count:\t%d\n", devices_count_result, devices_count);
     for(int i = 0; i < devices_count; i++)
@@ -130,9 +181,14 @@ void init_physical_device()
 
     int found_selected_index = 0;
     int found_present_index = 0;
+    int all_extension_supported = 0;
 
     uint32_t selected_queue_index;
     uint32_t present_queue_index;
+    char *physical_device_extensions[] = 
+    {
+        VK_KHR_SWAPCHAIN_EXTENSION_NAME
+    };
     for(int i = 0; i < family_queue_count; i ++)
     {
         print_physical_family_queue(family_queue[i]);
@@ -158,9 +214,10 @@ void init_physical_device()
                 present_queue_index = i;
                 found_present_index = 1;
             }
+            all_extension_supported = check_physical_device_extension(selected_device, physical_device_extensions, (sizeof(physical_device_extensions) / sizeof(char *)));
         }
 
-        if(found_present_index == 1 && found_selected_index == 1)
+        if(found_present_index == 1 && found_selected_index == 1 && all_extension_supported == 1)
         {
             break;
         }
