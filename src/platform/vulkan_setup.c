@@ -4,7 +4,6 @@
 #include <string.h>
 #include <vulkan/vulkan.h>
 #include "window_manager.h"
-#include "darray.h"
 #include "vulkan_debugger.h"
 
 static VkInstance instance = NULL;
@@ -16,6 +15,57 @@ static VkDevice device;
 static VkQueue graphics_queue;
 
 static VkSurfaceKHR surface;
+
+
+int setup_swap_chain(VkPhysicalDevice device, uint32_t *surface_format_count, uint32_t *surface_present_mode_count)
+{
+    VkSurfaceCapabilitiesKHR surface_capabilities;
+    VkResult result = vkGetPhysicalDeviceSurfaceCapabilitiesKHR(device, surface, &surface_capabilities);
+    int result_code = 0;
+    if(result != VK_SUCCESS)
+    {
+        printf("[ERROR] Cannot get Surface Capabilites code: %d\n", result);
+        result_code = 1;
+    }
+
+    result = vkGetPhysicalDeviceSurfaceFormatsKHR(device, surface, surface_format_count, NULL);
+    if(result != VK_SUCCESS)
+    {
+        printf("[ERROR] Cannot get surface formats count code: %d\n", result);
+        result_code = 1;
+    }
+    VkSurfaceFormatKHR *surface_formats = malloc(sizeof(VkSurfaceFormatKHR) * *surface_format_count);
+    result = vkGetPhysicalDeviceSurfaceFormatsKHR(device, surface, surface_format_count, surface_formats);
+    if(result != VK_SUCCESS)
+    {
+        printf("[ERROR] Cannot get surface formats code: %d\n", result);
+        result_code = 1;
+    }
+
+    result = vkGetPhysicalDeviceSurfacePresentModesKHR(device, surface, surface_present_mode_count, NULL);
+    if(result != VK_SUCCESS)
+    {
+        printf("[ERROR] Cannot get surface present mode count code %d\n", result);
+        result_code = 1;
+
+    }
+    VkPresentModeKHR *present_modes = malloc(sizeof(VkPresentModeKHR) * *surface_present_mode_count);
+    result = vkGetPhysicalDeviceSurfacePresentModesKHR(device, surface, surface_present_mode_count, present_modes);
+    if(result != VK_SUCCESS)
+    {
+        printf("[ERROR] Cannot get surface present modes code %d\n", result);
+        result_code = 1;
+    }
+
+    
+    free(surface_formats);
+    surface_formats = NULL;
+
+    free(present_modes);
+    present_modes = NULL;
+
+    return result_code;
+}
 
 void print_layer_property(VkLayerProperties *prop)
 {
@@ -156,13 +206,21 @@ void init_physical_device()
     {
         vkGetPhysicalDeviceFeatures(devices[i], &device_features);
         vkGetPhysicalDeviceProperties(devices[i], &device_properties);
+
         printf("\nDEVICE PROPERTIES:\n");
         print_physical_device_properties(&device_properties);
         if(device_features.geometryShader == VK_TRUE && device_properties.deviceType == VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU)
         {
             printf("\nFound device %s\n", device_properties.deviceName);
             selected_device = devices[i];
-            break;
+            uint32_t surface_format_count;
+            uint32_t surface_present_mode_count;
+            setup_swap_chain(devices[i], &surface_format_count, &surface_present_mode_count);
+            printf("[INFO] Surfacae format count: \t%d\nSurface present mode count:\t%d\n", surface_format_count, surface_present_mode_count);
+            if(surface_format_count > 0 && surface_present_mode_count > 0)
+                break;
+            else 
+                continue;
         }
     }
     free(devices);
@@ -189,6 +247,7 @@ void init_physical_device()
     {
         VK_KHR_SWAPCHAIN_EXTENSION_NAME
     };
+    uint32_t device_extension_count = (sizeof(physical_device_extensions) / sizeof(char *));
     for(int i = 0; i < family_queue_count; i ++)
     {
         print_physical_family_queue(family_queue[i]);
@@ -214,7 +273,7 @@ void init_physical_device()
                 present_queue_index = i;
                 found_present_index = 1;
             }
-            all_extension_supported = check_physical_device_extension(selected_device, physical_device_extensions, (sizeof(physical_device_extensions) / sizeof(char *)));
+            all_extension_supported = check_physical_device_extension(selected_device, physical_device_extensions, device_extension_count);
         }
 
         if(found_present_index == 1 && found_selected_index == 1 && all_extension_supported == 1)
@@ -242,8 +301,10 @@ void init_physical_device()
 #ifdef VULKAN_DEBUG
         .enabledLayerCount = VALIDATION_LAYER_COUNT,
         .ppEnabledLayerNames = validation_layers,
-        .pEnabledFeatures = &device_features
+        .pEnabledFeatures = &device_features,
 #endif
+        .enabledExtensionCount = device_extension_count,
+        .ppEnabledExtensionNames = physical_device_extensions
     };
 
     if(vkCreateDevice(selected_device, &logical_device_create_info, NULL, &device) != VK_SUCCESS)
