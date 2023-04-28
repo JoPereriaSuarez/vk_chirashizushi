@@ -10,4 +10,4 @@ do
     gcc -g -c -I "$src_dir" "$file" -o "$bin_dir$filename".o
 done
 
-gcc -g -fsanitize=address "${args[@]}" main.c -o chirashizushi.out -lX11 -lSDL2 -lvulkan 
+gcc -g -fsanitize=address "${args[@]}" main.c -o chirashizushi.out -lX11 -lSDL2 -lvulkan -std=c89 

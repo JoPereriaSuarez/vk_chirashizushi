@@ -16,8 +16,26 @@ static VkQueue graphics_queue;
 
 static VkSurfaceKHR surface;
 
+int create_swap_chain()
+{
 
-int setup_swap_chain(VkPhysicalDevice device, uint32_t *surface_format_count, uint32_t *surface_present_mode_count)
+}
+
+void choose_presentation_mode(VkPresentModeKHR *present_modes, uint32_t size, VkPresentModeKHR *result)
+{
+    *result = VK_PRESENT_MODE_FIFO_KHR;
+
+    for(int i = 0; i < size; i++)
+    {
+        if(present_modes[i] == VK_PRESENT_MODE_MAILBOX_KHR)
+        {
+            *result = VK_PRESENT_MODE_MAILBOX_KHR;
+            return;
+        }
+    }
+}
+
+int setup_swap_chain(VkPhysicalDevice device, uint32_t *surface_format_count, uint32_t *surface_present_mode_count, VkPresentModeKHR *out_presentation_mode)
 {
     VkSurfaceCapabilitiesKHR surface_capabilities;
     VkResult result = vkGetPhysicalDeviceSurfaceCapabilitiesKHR(device, surface, &surface_capabilities);
@@ -56,7 +74,7 @@ int setup_swap_chain(VkPhysicalDevice device, uint32_t *surface_format_count, ui
         printf("[ERROR] Cannot get surface present modes code %d\n", result);
         result_code = 1;
     }
-
+    choose_presentation_mode(present_modes, *surface_present_mode_count, out_presentation_mode);
     
     free(surface_formats);
     surface_formats = NULL;
@@ -142,11 +160,11 @@ int check_physical_device_extension(VkPhysicalDevice physical_device, char **req
         return 0;
     }
 
-    // UNCOMMENT TO PRINT PROPERTIES
-    // for(int i = 0; i < extensions_count; i++)
-    // {
-    //     printf("[INFO] Phyiscal Device extension at: %d, Name: %s, Version: %d\n", i, properties[i].extensionName, properties[i].specVersion);
-    // }
+    /* UNCOMMENT TO PRINT PROPERTIES */
+    /*for(int i = 0; i < extensions_count; i++)
+    {
+        printf("[INFO] Phyiscal Device extension at: %d, Name: %s, Version: %d\n", i, properties[i].extensionName, properties[i].specVersion);
+    } */
 
     uint32_t extensions_found_count = 0;
     for(int i = 0; i < extensions_count; i++)
@@ -200,7 +218,8 @@ void init_physical_device()
     VkPhysicalDeviceFeatures device_features;
     VkPhysicalDeviceProperties device_properties;
     VkPhysicalDevice selected_device = NULL;
-
+    VkPresentModeKHR presentation_mode;
+    
     printf("\ndevices count result:\t%d\ndevices count:\t%d\n", devices_count_result, devices_count);
     for(int i = 0; i < devices_count; i++)
     {
@@ -215,7 +234,7 @@ void init_physical_device()
             selected_device = devices[i];
             uint32_t surface_format_count;
             uint32_t surface_present_mode_count;
-            setup_swap_chain(devices[i], &surface_format_count, &surface_present_mode_count);
+            setup_swap_chain(devices[i], &surface_format_count, &surface_present_mode_count, &presentation_mode);
             printf("[INFO] Surfacae format count: \t%d\nSurface present mode count:\t%d\n", surface_format_count, surface_present_mode_count);
             if(surface_format_count > 0 && surface_present_mode_count > 0)
                 break;
@@ -225,12 +244,13 @@ void init_physical_device()
     }
     free(devices);
     devices = NULL;
-
     if(selected_device == NULL)
     {
         printf("[ERROR] Cannot find any suitable graphic device\n");
         return;
     }
+
+    printf("PRESENTATION MODE %d\n", presentation_mode);
     uint32_t family_queue_count;
     vkGetPhysicalDeviceQueueFamilyProperties(selected_device, &family_queue_count, NULL);
     VkQueueFamilyProperties *family_queue = malloc(sizeof(VkQueueFamilyProperties) * family_queue_count + 1);
@@ -346,7 +366,7 @@ int check_validation_layer_support()
         return 1;
     }
 
-    // UNCOMMENT THIS IF YOU WANT TO PRINT PROP LAYER INFO
+    /* UNCOMMENT THIS IF YOU WANT TO PRINT PROP LAYER INFO*/
     for (int i = 0; i < layer_count; i++)
     {
         print_layer_property(&props[i]);
