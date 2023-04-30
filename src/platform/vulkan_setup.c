@@ -1,10 +1,11 @@
 #include "vulkan_setup.h"
+#include <vulkan/vulkan.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <vulkan/vulkan.h>
 #include "window_manager.h"
 #include "vulkan_debugger.h"
+
 
 static VkInstance instance = NULL;
 
@@ -39,40 +40,31 @@ int setup_swap_chain(VkPhysicalDevice device, uint32_t *surface_format_count, ui
 {
     VkSurfaceCapabilitiesKHR surface_capabilities;
     VkResult result = vkGetPhysicalDeviceSurfaceCapabilitiesKHR(device, surface, &surface_capabilities);
-    int result_code = 0;
-    if(result != VK_SUCCESS)
+    if(!VK_CHECK(result, "Cannot get surface Capabilities"))
     {
-        printf("[ERROR] Cannot get Surface Capabilites code: %d\n", result);
-        result_code = 1;
+        return result;
     }
-
     result = vkGetPhysicalDeviceSurfaceFormatsKHR(device, surface, surface_format_count, NULL);
-    if(result != VK_SUCCESS)
+    if(!VK_CHECK(result, "Cannot get surface formats count"))
     {
-        printf("[ERROR] Cannot get surface formats count code: %d\n", result);
-        result_code = 1;
+        return result;
     }
     VkSurfaceFormatKHR *surface_formats = malloc(sizeof(VkSurfaceFormatKHR) * *surface_format_count);
     result = vkGetPhysicalDeviceSurfaceFormatsKHR(device, surface, surface_format_count, surface_formats);
-    if(result != VK_SUCCESS)
+    if(!VK_CHECK(result, "Cannot get surface formats"))
     {
-        printf("[ERROR] Cannot get surface formats code: %d\n", result);
-        result_code = 1;
+        return result;
     }
 
     result = vkGetPhysicalDeviceSurfacePresentModesKHR(device, surface, surface_present_mode_count, NULL);
-    if(result != VK_SUCCESS)
-    {
-        printf("[ERROR] Cannot get surface present mode count code %d\n", result);
-        result_code = 1;
+    if(!VK_CHECK(result, "Cannot get surface present mode count"))
+        return result;
 
-    }
     VkPresentModeKHR *present_modes = malloc(sizeof(VkPresentModeKHR) * *surface_present_mode_count);
     result = vkGetPhysicalDeviceSurfacePresentModesKHR(device, surface, surface_present_mode_count, present_modes);
     if(result != VK_SUCCESS)
     {
         printf("[ERROR] Cannot get surface present modes code %d\n", result);
-        result_code = 1;
     }
     choose_presentation_mode(present_modes, *surface_present_mode_count, out_presentation_mode);
     
@@ -82,7 +74,7 @@ int setup_swap_chain(VkPhysicalDevice device, uint32_t *surface_format_count, ui
     free(present_modes);
     present_modes = NULL;
 
-    return result_code;
+    return 0;
 }
 
 void print_layer_property(VkLayerProperties *prop)

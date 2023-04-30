@@ -1,5 +1,9 @@
+#ifndef _LOGGER_H_
+#define _LOGGER_H_
+
 #include <stdio.h>
 
+#ifndef LOG_CURRENT_LEVEL
 typedef enum LOG_LEVEL_T
 {
     LOG_VERBOSE = 0,
@@ -8,25 +12,16 @@ typedef enum LOG_LEVEL_T
     LOG_ERROR = 3,
     LOG_NONE = 4
 }LOG_LEVEL;
-
-#ifndef LOG_CURRENT_LEVEL
 #define LOG_CURRENT_LEVEL LOG_WARNING
-#endif
+#define LOG_LEVEL_TO_STR(LEVEL) (LEVEL == LOG_VERBOSE ? "VERBOSE": \
+    LEVEL == LOG_INFO ? "INFO": \
+    LEVEL == LOG_WARNING ? "WARNING":\
+    LEVEL == LOG_ERROR ? "ERROR": "NONE")
 
 #define LOG_MESSAGE(LEVEL, MESSAGE) \
 ({if(LEVEL >= LOG_CURRENT_LEVEL) \
-    printf("[%s]%s\n", log_to_str(LEVEL), MESSAGE);})
-char *log_to_str(LOG_LEVEL log_level)
-{
-    switch (log_level)
-    {
-        case LOG_VERBOSE:
-            return "VERBOSE"; 
-        case LOG_INFO:
-            return "INFO"; 
-        case LOG_WARNING:
-            return "WARNING"; 
-        case LOG_ERROR:
-            return "ERROR";    
-    }
-}
+    printf("[%s] %s\n", LOG_LEVEL_TO_STR(LEVEL), MESSAGE);})
+
+#endif
+
+#endif /*_LOGGER_H_ */
